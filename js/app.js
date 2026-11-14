@@ -117,16 +117,30 @@ function pickVoice(code) {
   var p = vs.filter(function (v) { return v.lang.toLowerCase().slice(0, 2) === c.slice(0, 2); });
   return p[0] || null;
 }
+var curUtter = null, audioMsg = '';
 function speak(text, lang) {
-  if (!speechOK) { return; }
+  if (!speechOK) { audioMsg = 'Cet appareil n’a pas de synthèse vocale.'; return; }
+  var synth = window.speechSynthesis;
+  function go() {
+    try {
+      var u = new window.SpeechSynthesisUtterance(speakable(text));
+      u.lang = CODES[lang] || lang;
+      var v = pickVoice(u.lang); if (v) u.voice = v;
+      u.rate = S.settings.rate || 1; u.volume = 1;
+      u.onerror = function (e) { audioMsg = 'Erreur audio : ' + ((e && e.error) || 'inconnue'); };
+      u.onstart = function () { audioMsg = ''; };
+      curUtter = u;                       /* garde une référence : Safari peut sinon couper la voix */
+      try { synth.resume(); } catch (e) {}
+      synth.speak(u);
+    } catch (e) { audioMsg = 'Erreur audio.'; }
+  }
   try {
-    window.speechSynthesis.cancel();
-    var u = new window.SpeechSynthesisUtterance(speakable(text));
-    u.lang = CODES[lang] || lang;
-    var v = pickVoice(u.lang); if (v) u.voice = v;
-    u.rate = S.settings.rate || 1;
-    window.speechSynthesis.speak(u);
-  } catch (e) {}
+    if (synth.speaking || synth.pending) { synth.cancel(); setTimeout(go, 90); } else go();
+  } catch (e) { go(); }
+}
+function voiceInfo() {
+  var vs = []; try { vs = window.speechSynthesis.getVoices() || []; } catch (e) {}
+  return { n: vs.length, ok: ['es-ES', 'de-DE', 'en-GB', 'ru-RU'].map(function (c) { return [c, !!pickVoice(c)]; }) };
 }
 if (speechOK) { try { window.speechSynthesis.onvoiceschanged = function () {}; window.speechSynthesis.getVoices(); } catch (e) {} }
 
@@ -296,7 +310,13 @@ function viewSettings() {
     '<div class="card"><div class="set"><label for="rate">Vitesse de la voix</label><select id="rate" data-ch="rate"><option value="0.7"' + (s.rate == 0.7 ? ' selected' : '') + '>Lente</option><option value="0.85"' + (s.rate == 0.85 ? ' selected' : '') + '>Posée</option><option value="1"' + (s.rate == 1 ? ' selected' : '') + '>Normale</option></select></div>' +
     '<div class="set"><span>Objectif par jour</span><span class="row">' + [20, 25, 30].map(function (m) { return '<button class="pill" data-act="setGoal" data-m="' + m + '" aria-pressed="' + (S.goal === m) + '">' + m + ' min</button>'; }).join('') + '</span></div>' +
     '<div class="set"><span>Langues du jour</span><span class="row">' + LANGS.filter(function (l) { return !l.off; }).map(function (l) { return '<button class="pill" data-act="toggleActive" data-l="' + l.id + '" aria-pressed="' + (S.active.indexOf(l.id) >= 0) + '" style="--c:var(--' + l.id + ')">' + l.name + '</button>'; }).join('') + '</span></div>' +
-    '<div class="set"><span>Audio sur cet appareil</span><b>' + (speechOK ? 'disponible' : 'indisponible') + '</b></div>' +
+    (function () {
+      var vi = voiceInfo(), nm = { 'es-ES': 'espagnol', 'de-DE': 'allemand', 'en-GB': 'anglais', 'ru-RU': 'russe' };
+      return '<div class="set"><span>Audio sur cet appareil</span><b>' + (speechOK ? 'disponible' : 'indisponible') + '</b></div>' +
+        '<div class="set" style="display:block"><p class="muted small" style="margin:0 0 8px">Voix trouvées : ' + vi.n + ' · ' + vi.ok.map(function (x) { return nm[x[0]] + ' ' + (x[1] ? 'oui' : 'non'); }).join(', ') + '.</p>' +
+        '<div class="row"><button class="btn sm" data-act="testVoice" data-l="es">Tester l’espagnol</button><button class="btn sm ghost" data-act="testVoice" data-l="de">Allemand</button><button class="btn sm ghost" data-act="testVoice" data-l="en">Anglais</button><button class="btn sm ghost" data-act="testVoice" data-l="ru">Russe</button></div>' +
+        '<p class="status">' + esc(audioMsg || 'Si tu n’entends rien : coupe le mode silencieux (interrupteur sur le côté de l’iPhone) et monte le volume.') + '</p></div>';
+    })() +
     LANGS.filter(function (l) { return !l.off; }).map(function (l) {
       return '<div class="set"><span>Conjugaison · ' + l.name + '</span><span class="row"><button class="pill" data-act="setConj" data-l="' + l.id + '" data-m="type" aria-pressed="' + (s.conj[l.id] === 'type') + '" style="--c:var(--' + l.id + ')">Saisie</button><button class="pill" data-act="setConj" data-l="' + l.id + '" data-m="mcq" aria-pressed="' + (s.conj[l.id] === 'mcq') + '" style="--c:var(--' + l.id + ')">QCM</button></span></div>';
     }).join('') + '</div>' +
@@ -827,6 +847,7 @@ function onAction(act, el) {
       if (li >= 0) { if (S.active.length > 1) S.active.splice(li, 1); } else S.active.push(el.dataset.l);
       save(); render(); break;
     }
+    case 'testVoice': { var tt = { es: 'Hola, ¿cómo estás?', de: 'Guten Tag, wie geht es Ihnen?', en: 'Hello, how are you?', ru: 'Здравствуйте, как дела?' }; speak(tt[el.dataset.l], el.dataset.l); setTimeout(render, 700); break; }
     case 'say': speak(el.dataset.t, el.dataset.l); if (!speechOK) { V.note = ''; } break;
     case 'drill': {
       var d = D[V.lang], t = d.tenses[V.tense];
