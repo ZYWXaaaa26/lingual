@@ -508,7 +508,11 @@ function pacing(l) {
 }
 
 /* contenu d'une unité : manuel d'espagnol corrigé + contenu généré par l'IA (gardé sur l'appareil) */
-function curated(l, k) { var o = CUR[l][k][3]; return (l === 'es' && o.core && ESCORE[o.core]) || null; }
+function curated(l, k) {
+  var o = CUR[l][k][3];
+  if (l === 'es') return (o.core && ESCORE[o.core]) || null;
+  return (typeof XCORE !== 'undefined' && XCORE[l + '|' + k]) || null;
+}
 function ckey(l, k) { return l + '|' + k; }
 function unitData(l, k) {
   var c = curated(l, k), g = CONT[ckey(l, k)] || {};
