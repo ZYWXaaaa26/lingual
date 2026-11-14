@@ -208,7 +208,7 @@ function tabbar() {
 }
 function viewHome() {
   var total = 0; LANGS.forEach(function (l) { if (!l.off) total += dueCount(l.id); });
-  return '<div class="top"><h1>Lingual</h1><div class="chips"><span class="chip"><b>' + curStreak() + '</b> j de suite</span><span class="chip"><b>' + S.xp + '</b> XP</span></div></div>' +
+  return '<div class="top"><h1 style="display:flex;align-items:center;gap:10px"><img src="icon-180.png" alt="" width="44" height="44" style="border-radius:10px">Lingual</h1><div class="chips"><span class="chip"><b>' + curStreak() + '</b> j de suite</span><span class="chip"><b>' + S.xp + '</b> XP</span></div></div>' +
     todayCard() + '<h3 class="month">Tes langues</h3><p class="muted small" style="margin-bottom:8px">' + (total ? total + ' cartes à réviser aujourd’hui.' : 'Rien à réviser pour l’instant.') + '</p>' +
     '<ul class="langs">' + LANGS.filter(function (l) { return !l.off; }).map(function (l) {
       if (l.off) return '<li><button class="lang-card off" data-act="openLang" data-l="x"><span class="hello">' + l.hello + '</span><span class="meta">' + l.name + ' <span>· ' + l.note + '</span></span></button></li>';
