@@ -35,23 +35,23 @@ function speakable(t) { return String(t).split('|')[0].replace('(e)', '').replac
 
 /* ---------- langues ---------- */
 var LANGS = [
-  { id: 'es', name: 'Espagnol', hello: 'Hola', level: 'A2', note: 'Débutant', gen: 'Spanish', glevel: 'A2 (beginner)',
-    focus: 'Priorité : les verbes irréguliers au présent, puis le passé (indefinido et perfecto) et les phrases du quotidien.' },
-  { id: 'de', name: 'Allemand', hello: 'Hallo', level: 'B2', note: 'À réactiver', gen: 'German', glevel: 'B2 (rusty, being reactivated after years without practice)',
-    focus: 'Tu as déjà vu tout ça : on réactive vite. Priorité : articles et cas, verbes forts, Perfekt, ordre des mots.' },
-  { id: 'en', name: 'Anglais', hello: 'Hello', level: 'B2 → C1', note: 'Objectif fluidité', gen: 'English', glevel: 'B2 aiming for C1 / fluent',
-    focus: 'Objectif fluidité : nuances de temps, conditionnels, expressions naturelles et réponses sans traduire dans ta tête.' },
-  { id: 'ru', name: 'Russe', hello: 'Привет', level: 'A0', note: 'Départ de zéro', gen: 'Russian', glevel: 'A0 (absolute beginner: keep sentences very short and add phonetics)',
-    focus: 'On commence par l’alphabet, puis les phrases de survie, puis le présent. Toute la phonétique est donnée en français.' },
-  { id: 'x', name: 'Langue 5', hello: '…', level: '', note: 'À choisir ensemble', off: true }
+  { id: 'es', name: 'Espagnol', hello: 'Hola', gen: 'Spanish',
+    focus: 'Parcours guidé en 26 unités, révisions espacées et conversations corrigées.' },
+  { id: 'de', name: 'Allemand', hello: 'Hallo', gen: 'German',
+    focus: 'Parcours guidé en 26 unités, révisions espacées et conversations corrigées.' },
+  { id: 'en', name: 'Anglais', hello: 'Hello', gen: 'English',
+    focus: 'Parcours guidé en 26 unités, révisions espacées et conversations corrigées.' },
+  { id: 'ru', name: 'Russe', hello: 'Привет', gen: 'Russian',
+    focus: 'Parcours guidé en 26 unités, révisions espacées et conversations corrigées.' },
+  { id: 'x', name: 'Langue 5', hello: '…', note: 'À choisir ensemble', off: true }
 ];
 function L(id) { return LANGS.filter(function (l) { return l.id === id; })[0]; }
 var CODES = { es: 'es-ES', de: 'de-DE', en: 'en-GB', ru: 'ru-RU' };
 
 /* ---------- état et sauvegarde ---------- */
-var KEY = 'babel-de-poche-v1', DAY = 86400000, BOX_DAYS = [0, 1, 3, 7, 14, 30];
+var KEY = 'lingual-v2', DAY = 86400000, BOX_DAYS = [0, 1, 3, 7, 14, 30];
 var mem = null;
-function defState() { return { cards: {}, xp: 0, streak: { last: '', n: 0 }, path: {}, min: {}, goal: 25, active: ['es', 'de', 'en', 'ru'], settings: { rate: 1, conj: { es: 'type', de: 'type', en: 'type', ru: 'mcq' } } }; }
+function defState() { return { v: 2, setup: false, cards: {}, xp: 0, streak: { last: '', n: 0 }, path: {}, min: {}, goal: 25, active: [], settings: { rate: 1, conj: { es: 'type', de: 'type', en: 'type', ru: 'mcq' } } }; }
 var S = defState();
 function loadState() {
   try {
@@ -71,7 +71,7 @@ function save() {
   mem = raw;
   try { window.localStorage.setItem(KEY, raw); } catch (e) {}
 }
-var KEY2 = 'babel-de-poche-content-v1', CONT = {}, mem2 = null;
+var KEY2 = 'lingual-content-v2', CONT = {}, mem2 = null;
 function loadContent() {
   try {
     var raw = null;
@@ -222,12 +222,12 @@ function tabbar() {
 }
 function viewHome() {
   var total = 0; LANGS.forEach(function (l) { if (!l.off) total += dueCount(l.id); });
-  return '<div class="top"><h1 style="display:flex;align-items:center;gap:10px"><img src="icon-180.png" alt="" width="44" height="44" style="border-radius:10px">Lingual</h1><div class="chips"><span class="chip"><b>' + curStreak() + '</b> j de suite</span><span class="chip"><b>' + S.xp + '</b> XP</span></div></div>' +
+  return '<div class="top"><h1 style="display:flex;align-items:center;gap:10px"><img src="icon-180.png" alt="" width="44" height="44" style="border-radius:10px">Lingual</h1><div class="chips"><span class="chip"><b>' + curStreak() + '</b> j de suite</span></div></div>' +
     todayCard() + '<h3 class="month">Tes langues</h3><p class="muted small" style="margin-bottom:8px">' + (total ? total + ' cartes à réviser aujourd’hui.' : 'Rien à réviser pour l’instant.') + '</p>' +
     '<ul class="langs">' + LANGS.filter(function (l) { return !l.off; }).map(function (l) {
       if (l.off) return '<li><button class="lang-card off" data-act="openLang" data-l="x"><span class="hello">' + l.hello + '</span><span class="meta">' + l.name + ' <span>· ' + l.note + '</span></span></button></li>';
       var d = dueCount(l.id);
-      return '<li><button class="lang-card" data-act="openLang" data-l="' + l.id + '" style="--c:var(--' + l.id + ')"><span class="hello">' + l.hello + '</span><span class="meta">' + l.name + ' <span>· ' + l.level + ' · ' + l.note + '</span></span><span class="due' + (d ? ' hot' : '') + '">' + (d ? d + ' à réviser' : seenCount(l.id) + ' vues') + '</span></button></li>';
+      return '<li><button class="lang-card" data-act="openLang" data-l="' + l.id + '" style="--c:var(--' + l.id + ')"><span class="hello">' + l.hello + '</span><span class="meta">' + l.name + ' <span>· ' + (S.path[l.id] ? 'Niveau ' + curLevel(l.id) : 'Choisis ton niveau') + '</span></span><span class="due' + (d ? ' hot' : '') + '">' + (d ? d + ' à réviser' : seenCount(l.id) + ' vues') + '</span></button></li>';
     }).join('') + '</ul>';
 }
 function viewLang5() {
@@ -245,7 +245,7 @@ function viewLang() {
   b.push(['sits', 'Situations réelles', d.sit.length + ' scènes · ' + nph + ' phrases']);
   b.push(['chat', 'Conversation corrigée', 'Joue une scène, l’IA corrige tes erreurs']);
   b.push(['review', 'Révision espacée', due ? due + ' à réviser maintenant' : 'Séance de 10 cartes']);
-  return topBar('') + '<div class="hero"><span class="hello">' + l.hello + '</span><span class="lvl">' + l.level + ' · ' + l.note + '</span></div>' +
+  return topBar('') + '<div class="hero"><span class="hello">' + l.hello + '</span><span class="lvl">' + (S.path[l.id] ? 'Niveau ' + curLevel(l.id) : 'Choisis ton niveau') + '</span></div>' +
     '<div class="focus">' + esc(l.focus) + '<div class="muted small" style="margin-top:6px">' + seen + ' cartes vues sur ' + cards.length + '</div></div>' +
     '<div class="blocks">' + b.map(function (x) {
       return '<button class="block" data-act="openBlock" data-b="' + x[0] + '"><h3>' + x[1] + '</h3><p>' + esc(x[2]) + '</p><span class="go">›</span></button>';
@@ -308,6 +308,7 @@ function viewSettings() {
   var s = S.settings;
   return '<div class="top"><h1>Réglages</h1></div>' +
     '<div class="card"><div class="set"><label for="rate">Vitesse de la voix</label><select id="rate" data-ch="rate"><option value="0.7"' + (s.rate == 0.7 ? ' selected' : '') + '>Lente</option><option value="0.85"' + (s.rate == 0.85 ? ' selected' : '') + '>Posée</option><option value="1"' + (s.rate == 1 ? ' selected' : '') + '>Normale</option></select></div>' +
+    '<div class="set"><span>Mes langues et mon niveau</span><button class="btn sm ghost" data-act="redoSetup">Modifier</button></div>' +
     '<div class="set"><span>Objectif par jour</span><span class="row">' + [20, 25, 30].map(function (m) { return '<button class="pill" data-act="setGoal" data-m="' + m + '" aria-pressed="' + (S.goal === m) + '">' + m + ' min</button>'; }).join('') + '</span></div>' +
     '<div class="set"><span>Langues du jour</span><span class="row">' + LANGS.filter(function (l) { return !l.off; }).map(function (l) { return '<button class="pill" data-act="toggleActive" data-l="' + l.id + '" aria-pressed="' + (S.active.indexOf(l.id) >= 0) + '" style="--c:var(--' + l.id + ')">' + l.name + '</button>'; }).join('') + '</span></div>' +
     (function () {
@@ -404,7 +405,7 @@ function viewSession() {
 var sampleFn = null, dict = null, capsReady = false, dictState = 'idle';
 function chatInstr(lang, scen, text) {
   var l = L(lang);
-  return 'You are a warm, patient ' + l.gen + ' conversation partner and teacher for a native French speaker. Learner level: ' + l.glevel + '. Scene: ' + (text || SCEN[scen]) + '\n\n' +
+  return 'You are a warm, patient ' + l.gen + ' conversation partner and teacher for a native French speaker. Learner level: ' + lvlDesc(lang) + '. Scene: ' + (text || SCEN[scen]) + '\n\n' +
     'Rules:\n- In "reply", speak ONLY in ' + l.gen + ', one to three short sentences matched to the level. End with ONE question or prompt so the learner keeps talking.\n' +
     '- After each learner message, check it. List real mistakes in "corrections" as {wrong, right, why}; "why" is one short sentence in French. If the learner wrote in French, give the ' + l.gen + ' way to say it as one correction with an empty "wrong". Never invent mistakes: if the message is correct, leave "corrections" empty and put a short French compliment in "praise".\n' +
     '- "upgrade": for B2 or higher learners, optionally a more natural or idiomatic way to say what they meant, in ' + l.gen + '. Otherwise an empty string.\n' +
@@ -710,6 +711,7 @@ function pathSummary(s) {
     h += '<p>Il faut ' + s.th + ' % pour valider (tu as ' + s.pct + ' %). Relis les règles, fais les leçons de révision puis retente le bilan.</p>';
   }
   h += '<p class="muted small">Aujourd’hui : ' + Math.round(todayMin()) + ' min sur ' + S.goal + '.</p><div class="stack" style="margin-top:16px">';
+  if (p.d < 5) h += '<button class="btn wide" data-act="readStart" data-l="' + p.lang + '" data-k="' + k + '" data-d="' + p.d + '">Dernière étape : lire et résumer un texte</button>';
   if (p.d === 4) h += '<button class="btn ghost wide" data-act="unitChat" data-l="' + p.lang + '" data-k="' + k + '">Bonus : parler de ce thème avec l’IA</button>';
   if (p.d < 5 && todayMin() < S.goal) h += '<button class="btn ghost wide" data-act="startReview" data-l="' + p.lang + '">Réviser pour compléter ta séance</button>';
   if (p.d === 5 && !s.passed) h += '<button class="btn wide" data-act="again">Retenter le bilan</button>';
@@ -735,19 +737,20 @@ function todayCard() {
 }
 function viewPath() {
   var l = L(V.lang), g = GOALS[l.id], n = CUR[l.id].length, f = frontier(l.id), p = S.path[l.id];
-  var h = topBar('Parcours · ' + l.name) + '<div class="focus"><b>De ' + esc(g.from) + ' à ' + esc(g.to) + ' en 6 mois</b><div class="bar" style="margin:10px 0 6px"><span style="width:' + Math.round(f / n * 100) + '%"></span></div><div class="muted small">' + f + ' unités validées sur ' + n + '. ' + esc(pacing(l.id)) + '</div></div>';
+  var h = topBar('Parcours · ' + l.name) + '<div class="focus"><b>Parcours de 6 mois · départ au niveau ' + (startLv(l.id) || levelStarts(l.id)[0][0]) + '</b><div class="bar" style="margin:10px 0 6px"><span style="width:' + Math.round(f / n * 100) + '%"></span></div><div class="muted small">' + f + ' unités validées sur ' + n + '. ' + esc(pacing(l.id)) + '</div></div>';
   if (!p || !Object.keys(p.u).length) {
-    h += '<div class="card" style="margin-bottom:14px"><h3>Où veux-tu commencer ?</h3><p class="muted small" style="margin:6px 0 10px">Si tu connais déjà le début, saute-le. Tu peux aussi passer un test sur n’importe quelle unité verrouillée.</p><div class="row">' +
-      MB.slice(0, 6).map(function (k, m) { return '<button class="pill" data-act="startAt" data-k="' + k + '" aria-pressed="false">' + (m === 0 ? 'Au début' : 'Mois ' + (m + 1)) + '</button>'; }).join('') + '</div></div>';
+    h += '<div class="card" style="margin-bottom:14px"><h3>Ton niveau de départ</h3><p class="muted small" style="margin:6px 0 10px">Choisis où commencer. Les niveaux précédents restent disponibles en révision. Tu peux aussi passer un test sur n’importe quelle unité verrouillée.</p><div class="row">' +
+      levelStarts(l.id).map(function (x) { return '<button class="pill" data-act="startLevel" data-k="' + x[1] + '" aria-pressed="false">' + x[0] + '</button>'; }).join('') + '</div></div>';
   }
   for (var m = 0; m < 6; m++) {
     h += '<h3 class="month">Mois ' + (m + 1) + ' · ' + esc(g.months[m]) + '</h3><div class="nodes">';
     for (var k = MB[m]; k < MB[m + 1]; k++) {
       var done = passed(l.id, k), open = unitOpen(l.id, k), cur = k === f;
-      h += '<button class="node' + (done ? ' done' : (cur ? ' cur' : (open ? '' : ' lock'))) + '" data-act="openUnit" data-k="' + k + '"><span class="dot">' + (done ? '✓' : (k + 1)) + '</span><span class="nt"><b>' + esc(CUR[l.id][k][0]) + '</b><small>' + CUR[l.id][k][1] + ' · ' + (done ? (ug(l.id, k).skip ? 'sautée' : 'validée') : (open ? lessonsDone(l.id, k) + ' / 6 leçons' : 'verrouillée')) + '</small></span></button>';
+      h += '<button class="node' + (done ? ' done' : (cur ? ' cur' : (open ? '' : ' lock'))) + '" data-act="openUnit" data-k="' + k + '"><span class="dot">' + (done ? '✓' : (k + 1)) + '</span><span class="nt"><b>' + esc(CUR[l.id][k][0]) + '</b><small>' + CUR[l.id][k][1] + ' · ' + (done ? (ug(l.id, k).skip ? 'à revoir (facultatif)' : 'validée') : (open ? lessonsDone(l.id, k) + ' / 6 leçons' : 'verrouillée')) + '</small></span></button>';
     }
     h += '</div>';
   }
+  if (p && Object.keys(p.u).length) h += '<div class="stack" style="margin:18px 0 24px"><button class="btn ghost wide" data-act="resetPath">' + (V.confirmPath ? 'Confirmer : repartir de zéro dans cette langue' : 'Changer de niveau de départ') + '</button></div>';
   return h;
 }
 function viewUnit() {
@@ -776,9 +779,139 @@ function unitChatText(l, k) {
   return 'Role-play a realistic everyday situation about this topic: "' + u[0] + '" (' + u[2] + '). The learner is working at level ' + u[1] + ' in this unit, so keep your language at that level and make them use the unit\'s vocabulary and grammar.';
 }
 
-var VIEWS = { home: viewHome, review: viewReview, settings: viewSettings, lang: viewLang, lang5: viewLang5, conj: viewConj, grammar: viewGrammar, sits: viewSits, sit: viewSit, alpha: viewAlpha, path: viewPath, unit: viewUnit, prep: viewPrep, session: viewSession, chatpick: viewChatPick, chat: viewChat };
+/* ---------- niveaux, accueil de configuration, lecture ---------- */
+var LVLN = { A0: 'Débutant complet', A1: 'Débutant', A2: 'Élémentaire', B1: 'Intermédiaire', B2: 'Intermédiaire avancé', C1: 'Avancé' };
+function levelStarts(l) {
+  var cnt = {}, first = {}, order = [];
+  CUR[l].forEach(function (u, i) { var v = u[1]; if (!(v in first)) { first[v] = i; order.push(v); } cnt[v] = (cnt[v] || 0) + 1; });
+  return order.filter(function (v) { return cnt[v] >= 3; }).map(function (v) { return [v, first[v]]; });
+}
+function startLv(l) { var p = S.path[l]; return p ? CUR[l][Math.min(p.start || 0, CUR[l].length - 1)][1] : ''; }
+function curLevel(l) { return CUR[l][Math.min(frontier(l), CUR[l].length - 1)][1]; }
+function lvlDesc(l) {
+  var lv = curLevel(l);
+  return lv + (lv === 'A0' ? ' (absolute beginner: keep sentences very short and add phonetics)' : (lv === 'A1' ? ' (beginner: very short and simple sentences)' : ''));
+}
+function setStart(l, k) {
+  var p = ensP(l); p.start = k; p.t0 = Date.now(); p.u = {};
+  for (var j = 0; j < k; j++) { p.u[j] = { d: [1, 1, 1, 1, 1, 1], ok: 1, best: 0, skip: 1 }; }
+}
+function initWl() {
+  var d = { es: 'A2', de: 'B1', en: 'B2', ru: 'A0' }, w = {};
+  ['es', 'de', 'en', 'ru'].forEach(function (l) { w[l] = { on: S.active.indexOf(l) >= 0 && !!S.setup, lvl: (S.setup && S.path[l]) ? startLv(l) : d[l] }; });
+  V.wl = w;
+}
+function viewWelcome() {
+  if (!V.wl) initWl();
+  var any = false;
+  var h = '<div class="top"><h1 style="display:flex;align-items:center;gap:10px"><img src="icon-180.png" alt="" width="44" height="44" style="border-radius:10px">Lingual</h1></div>' +
+    '<p class="muted">Choisis les langues que tu veux apprendre et ton niveau de départ. Tu pourras tout modifier dans Réglages.</p><div class="blocks" style="margin-top:12px">';
+  ['es', 'de', 'en', 'ru'].forEach(function (id) {
+    var l = L(id), w = V.wl[id]; if (w.on) any = true;
+    h += '<div class="card" style="--c:var(--' + id + ');border-left:8px solid var(--c)"><div class="row" style="justify-content:space-between"><h3 style="color:var(--c)">' + l.name + '</h3><button class="pill" data-act="wlToggle" data-l="' + id + '" aria-pressed="' + w.on + '" style="--c:var(--' + id + ')">' + (w.on ? 'Je l’apprends' : 'Ajouter') + '</button></div>';
+    if (w.on) {
+      h += '<p class="muted small" style="margin:8px 0">Niveau de départ</p><div class="row">' + levelStarts(id).map(function (x) {
+        return '<button class="pill" data-act="wlLevel" data-l="' + id + '" data-v="' + x[0] + '" aria-pressed="' + (w.lvl === x[0]) + '" style="--c:var(--' + id + ')">' + x[0] + ' · ' + LVLN[x[0]] + '</button>';
+      }).join('') + '</div>';
+      var lv = levelStarts(id); h += '<p class="muted small" style="margin-top:8px">Le parcours couvre les niveaux ' + lv[0][0] + ' à ' + lv[lv.length - 1][0] + '. Les niveaux précédents restent consultables en révision.</p>';
+    }
+    h += '</div>';
+  });
+  h += '</div><p class="muted small" style="margin-top:12px">Une langue demande environ 6 leçons de 25 minutes par semaine. Pour tenir 6 mois, commence par une ou deux langues.</p>' +
+    '<div class="stack" style="margin:14px 0 24px"><button class="btn wide" data-act="wlDone"' + (any ? '' : ' disabled') + '>Commencer</button></div>';
+  return h;
+}
+
+var WORDS = { A0: 35, A1: 50, A2: 70, B1: 90, B2: 110, C1: 120 };
+function readPrompt(l, k) {
+  var g = L(l), u = CUR[l][k], ud = unitData(l, k), words = ud.vocab.slice(0, 12).map(function (x) { return x[0]; }).join(', ');
+  return 'You are a language teacher writing a short reading text for a native French speaker.\nLanguage: ' + g.gen + '\nLevel: ' + u[1] + '\nTheme: ' + u[0] + ' (' + u[2] + ')\n' + (words ? 'Try to reuse a few of these words: ' + words + '\n' : '') +
+    '\nWrite ONE coherent text of 5 to 9 short lines (about ' + WORDS[u[1]] + ' words) at exactly this level, natural and correct, about a person or a situation linked to the theme. Return ONLY one JSON object, no markdown:\n' +
+    '{"title":"","text":"","fr":"French translation of the text","points":["three key ideas in French, each under 12 words"],"model":"a model summary of two sentences in ' + g.gen + ' at this level"}';
+}
+function cleanText(o) {
+  if (!o || typeof o.text !== 'string' || o.text.length < 40 || typeof o.fr !== 'string') return null;
+  var pts = (Array.isArray(o.points) ? o.points : []).filter(function (x) { return typeof x === 'string' && x; }).slice(0, 4);
+  return { t: String(o.title || '').slice(0, 80), x: o.text.trim().slice(0, 1200), f: o.fr.trim().slice(0, 1400), p: pts, m: String(o.model || '').slice(0, 400) };
+}
+function bankText(l, k, d) {
+  var lv = CUR[l][k][1], pool = TEXTS[l + '|' + lv];
+  if (!pool || !pool.length) {
+    var ls = levelStarts(l).map(function (x) { return x[0]; }), best = null;
+    ls.forEach(function (v) { if (TEXTS[l + '|' + v]) best = best || v; });
+    ls.forEach(function (v) { if (TEXTS[l + '|' + v] && v <= lv) best = v; });
+    pool = TEXTS[l + '|' + best];
+  }
+  return pool[(k * 6 + d) % pool.length];
+}
+function startReading(l, k, d, ret) {
+  var key = 'r|' + l + '|' + k + '|' + d, r = V.read = { lang: l, k: k, d: d, ret: ret || { view: 'home' }, step: 'read', t: null, src: '', draft: '', fb: null, busy: false, err: '', fr: false };
+  if (CONT[key]) { r.t = CONT[key]; r.src = 'ai'; go({ view: 'read' }); return; }
+  if (!sampleFn) { r.t = bankText(l, k, d); r.src = 'bank'; go({ view: 'read' }); return; }
+  r.step = 'load'; go({ view: 'read' });
+  Promise.resolve().then(function () { return sampleFn([{ role: 'user', content: readPrompt(l, k) }], { cache: false }); }).then(function (res) {
+    var c = cleanText(parseJSON(res && res.text)); if (!c) throw new Error('bad');
+    CONT[key] = c; saveContent(); return c;
+  }).then(function (c) { if (V.read === r) { r.t = c; r.src = 'ai'; r.step = 'read'; render(); } })
+    .catch(function () { if (V.read === r) { r.t = bankText(l, k, d); r.src = 'bank'; r.step = 'read'; render(); } });
+}
+function checkPrompt(r, txt) {
+  var g = L(r.lang), lv = CUR[r.lang][r.k][1];
+  return 'You are a kind ' + g.gen + ' teacher. A native French speaker at level ' + lv + ' had to summarise a text in ' + g.gen + '.\n\nTEXT:\n' + r.t.x + '\n\nLEARNER SUMMARY:\n' + txt + '\n\n' +
+    'Check the summary. Return ONLY one JSON object, no markdown:\n{"corrections":[{"wrong":"","right":"","why":""}],"content":"","praise":"","model":"","score":0}\n' +
+    'Rules: list only real mistakes (at most 6); "why" is one short sentence in French; if the learner wrote in French (allowed at level A0), give the ' + g.gen + ' way to say it as one correction with an empty "wrong". ' +
+    '"content" is one or two French sentences saying which main ideas of the text are covered and which are missing. "praise" is one short French encouragement. "model" is a model summary of two sentences in ' + g.gen + ' at the learner level. "score" is 0 to 100 for content and accuracy.';
+}
+function readCheck() {
+  var r = V.read, ta = $('#sum'); if (!r || r.busy) return;
+  var txt = (ta ? ta.value : r.draft).trim(); r.draft = txt;
+  if (txt.length < 8) { r.err = 'Écris au moins une phrase.'; render(); return; }
+  if (!sampleFn) { r.step = 'result'; render(); return; }
+  r.busy = true; r.err = ''; render();
+  Promise.resolve().then(function () { return sampleFn([{ role: 'user', content: checkPrompt(r, txt) }], { cache: false }); }).then(function (res) {
+    var p = parseJSON(res && res.text); if (!p) throw new Error('bad');
+    r.fb = { c: (Array.isArray(p.corrections) ? p.corrections : []).slice(0, 6), content: String(p.content || ''), praise: String(p.praise || ''), model: String(p.model || r.t.m || ''), score: Math.max(0, Math.min(100, +p.score || 0)) };
+    r.busy = false; r.step = 'result'; render();
+  }).catch(function () { r.busy = false; r.err = 'La correction n’est pas arrivée. Réessaie, ou compare avec le modèle.'; render(); });
+}
+function viewRead() {
+  var r = V.read; if (!r) return '<p>…</p>';
+  var l = L(r.lang), lv = CUR[r.lang][r.k][1], t = r.t;
+  var top = '<div class="top"><button class="back" data-act="readQuit">‹ Terminer</button><span class="muted small">Lecture · ' + l.name + ' · ' + lv + '</span></div>';
+  if (r.step === 'load') return top + '<div class="sum"><h2 style="margin:10px 0"><span class="dots">L’IA prépare ton texte</span></h2><p class="muted small">Un court texte à ton niveau, sur le thème de l’unité.</p><div class="stack" style="margin-top:14px"><button class="btn ghost wide" data-act="readQuit">Passer cette étape</button></div></div>';
+  var text = '<div class="card"><h3>' + esc(t.t) + '</h3><p class="read">' + esc(t.x) + '</p>' +
+    '<div class="row" style="margin-top:10px"><button class="btn sm ghost" data-act="say" data-t="' + esc(t.x) + '" data-l="' + r.lang + '">Écouter</button><button class="btn sm ghost" data-act="readFr">' + (r.fr ? 'Masquer la traduction' : 'Voir la traduction') + '</button></div>' +
+    (r.fr ? '<p class="muted small" style="margin-top:10px">' + esc(t.f) + '</p>' : '') + '</div>';
+  if (r.step === 'read') {
+    return top + '<p class="muted" style="margin:6px 0 12px">Dernière étape de la séance. Lis ce texte, puis résume-le de mémoire.</p>' + text +
+      '<div class="stack" style="margin-top:14px"><button class="btn wide" data-act="readWrite">J’ai lu : écrire mon résumé</button></div>';
+  }
+  if (r.step === 'write') {
+    var how = lv === 'A0' ? 'en français, ou en russe très simple' : 'en ' + l.name.toLowerCase() + ', en 2 à 4 phrases';
+    return top + '<h2 style="margin:6px 0 4px">Résume le texte</h2><p class="muted">Écris ton résumé ' + how + '. Le micro du clavier de l’iPhone fonctionne aussi.</p>' +
+      '<details class="rule" style="margin:10px 0"><summary>Revoir le texte</summary><div class="in"><p class="read">' + esc(t.x) + '</p></div></details>' +
+      '<textarea id="sum" class="in-area" rows="6" aria-label="Ton résumé" placeholder="Ton résumé…" autocapitalize="sentences">' + esc(r.draft) + '</textarea>' +
+      '<p class="status">' + (r.busy ? '<span class="dots">L’IA corrige</span>' : esc(r.err)) + '</p>' +
+      '<div class="stack"><button class="btn wide" data-act="readCheck"' + (r.busy ? ' disabled' : '') + '>' + (sampleFn ? 'Corriger mon résumé' : 'Voir le modèle') + '</button></div>';
+  }
+  var fb = r.fb, h = top + '<h2 style="margin:6px 0 8px">Ton résumé</h2><div class="card"><p class="read">' + esc(r.draft) + '</p></div>';
+  if (fb) {
+    h += '<div class="card" style="margin-top:12px"><h3>Correction · ' + fb.score + ' / 100</h3>' + (fb.content ? '<p style="margin-top:6px">' + esc(fb.content) + '</p>' : '');
+    if (fb.c.length) h += fb.c.map(function (x) { return '<div style="margin-top:8px">' + (x.wrong ? '<span class="w">' + esc(x.wrong) + '</span> → ' : '') + '<span class="r">' + esc(x.right) + '</span><br><span class="muted small">' + esc(x.why) + '</span></div>'; }).join('');
+    else h += '<p class="good" style="margin-top:8px">' + esc(fb.praise || 'Aucune faute repérée.') + '</p>';
+    h += '</div>';
+  } else {
+    h += '<div class="card" style="margin-top:12px"><h3>Compare avec les idées clés</h3><ul class="pts">' + (t.p || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul><p class="muted small" style="margin-top:8px">Vérifie que ton résumé contient ces idées. La correction automatique est disponible quand l’appli est ouverte depuis Claude.</p></div>';
+  }
+  var model = (fb && fb.model) || t.m;
+  if (model) h += '<div class="card" style="margin-top:12px"><h3>Résumé modèle</h3><p style="margin-top:6px">' + esc(model) + '</p><button class="btn sm ghost" style="margin-top:8px" data-act="say" data-t="' + esc(model) + '" data-l="' + r.lang + '">Écouter</button></div>';
+  return h + '<div class="stack" style="margin:14px 0 24px"><button class="btn wide" data-act="readQuit">Terminer la séance</button></div>';
+}
+
+var VIEWS = { home: viewHome, review: viewReview, settings: viewSettings, lang: viewLang, lang5: viewLang5, conj: viewConj, grammar: viewGrammar, sits: viewSits, sit: viewSit, alpha: viewAlpha, welcome: viewWelcome, read: viewRead, path: viewPath, unit: viewUnit, prep: viewPrep, session: viewSession, chatpick: viewChatPick, chat: viewChat };
 function render() {
   var app = $('#app');
+  if (!S.setup && V.view !== 'welcome') V.view = 'welcome';
   app.setAttribute('data-lang', (V.lang && L(V.lang) && !L(V.lang).off) ? V.lang : '');
   app.innerHTML = VIEWS[V.view]() + (TOP[V.view] ? tabbar() : '');
   if (V.view === 'chat') updateChat();
@@ -821,6 +954,30 @@ function onAction(act, el) {
       break;
     case 'verb': go({ verb: +el.dataset.i }); break;
     case 'tense': go({ tense: +el.dataset.i }); break;
+    case 'wlToggle': { var w = V.wl[el.dataset.l]; w.on = !w.on; render(); break; }
+    case 'wlLevel': V.wl[el.dataset.l].lvl = el.dataset.v; render(); break;
+    case 'wlDone': {
+      var act2 = [];
+      ['es', 'de', 'en', 'ru'].forEach(function (id) {
+        var w2 = V.wl[id]; if (!w2.on) return; act2.push(id);
+        var st = levelStarts(id).filter(function (x) { return x[0] === w2.lvl; })[0];
+        var k2 = st ? st[1] : 0;
+        if (!S.path[id] || (S.path[id].start || 0) !== k2 && !Object.keys(S.path[id].u).some(function (j) { return !S.path[id].u[j].skip; })) setStart(id, k2);
+      });
+      if (!act2.length) break;
+      S.active = act2; S.setup = true; save(); V.wl = null; V.lang = null; go({ view: 'home' }); break;
+    }
+    case 'redoSetup': V.wl = null; initWl(); go({ view: 'welcome' }); break;
+    case 'startLevel': { setStart(V.lang, +el.dataset.k); save(); render(); break; }
+    case 'resetPath':
+      if (!V.confirmPath) { V.confirmPath = true; render(); }
+      else { delete S.path[V.lang]; V.confirmPath = false; save(); render(); }
+      break;
+    case 'readStart': startReading(el.dataset.l, +el.dataset.k, +el.dataset.d, V.session && V.session.ret); break;
+    case 'readFr': V.read.fr = !V.read.fr; render(); break;
+    case 'readWrite': V.read.step = 'write'; render(); break;
+    case 'readCheck': readCheck(); break;
+    case 'readQuit': { var rr2 = (V.read && V.read.ret) || { view: 'home' }; V.read = null; V.session = null; go(Object.assign({ view: 'home' }, rr2)); break; }
     case 'openUnit': go({ view: 'unit', unit: +el.dataset.k }); break;
     case 'startAt': {
       var k0 = +el.dataset.k, p0 = ensP(V.lang); p0.start = k0;
@@ -907,7 +1064,7 @@ function onAction(act, el) {
     }
     case 'reset':
       if (!V.confirmReset) { V.confirmReset = true; render(); }
-      else { S = defState(); save(); V.confirmReset = false; V.note = 'Progression effacée.'; render(); }
+      else { S = defState(); CONT = {}; saveContent(); save(); V.confirmReset = false; V.note = ''; V.wl = null; V.view = 'welcome'; render(); }
       break;
   }
 }
@@ -923,6 +1080,7 @@ document.addEventListener('keydown', function (e) {
   if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'draft') { e.preventDefault(); chatSend(); }
 });
 document.addEventListener('input', function (e) {
+  if (e.target.id === 'sum' && V.read) V.read.draft = e.target.value;
   if (e.target.id === 'draft' && V.chat) {
     V.chat.draft = e.target.value;
     e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px';
@@ -951,8 +1109,9 @@ function initCaps() {
 /* ---------- démarrage ---------- */
 function boot(data) {
   loadState(); loadContent();
-  if (data && data.S) mergeState(data.S);
+  if (data && data.S && data.S.v === 2) mergeState(data.S);
   if (data && data.C && !Object.keys(CONT).length) CONT = data.C;
+  if (!S.setup) V.view = 'welcome';
   render();
   initCaps();
 }
